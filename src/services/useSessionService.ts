@@ -1,6 +1,6 @@
 import { useSignupApi } from "@/api/useSignupApi";
-import { ISignupRequest } from "@/types/api";
-import { useMutation } from "react-query";
+import { IHTTPResponse, ISignupRequest } from "@/types/api";
+import { useMutation, useQuery } from "react-query";
 import { toast } from "react-toastify";
 
 const notify = (message: string) =>
@@ -10,12 +10,13 @@ const notify = (message: string) =>
   });
 
 export const useSessionService = () => {
-  const { POST_SIGNUP } = useSignupApi();
+  const { POST_SIGNUP, FETCH_USER_INFO } = useSignupApi();
 
   const { mutate: Signup, isLoading: busy } = useMutation({
     mutationFn: (data: ISignupRequest) => POST_SIGNUP(data),
     onSuccess: ({ data }) => {
       localStorage.setItem("key", data.key);
+      localStorage.setItem("secret", data.secret);
       notify("Signed up successfully");
     },
   });
@@ -25,5 +26,14 @@ export const useSessionService = () => {
     window.location.reload();
   };
 
-  return { Signup, busy, Logout };
+  const userInfo = useQuery<IHTTPResponse, Error>({
+    queryKey: ["user"],
+    queryFn: FETCH_USER_INFO,
+    retry: false,
+    staleTime: 1000 * 60 * 60,
+    enabled: false
+    // gcTime: 1000 * 60 * 60,
+  });
+
+  return { Signup, busy, Logout, userInfo };
 };
